@@ -11,6 +11,7 @@ import androidx.annotation.RequiresApi
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.google.firebase.database.database
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -30,6 +31,7 @@ class ChatActivity : AppCompatActivity() {
 
         val currentUser = intent.getStringExtra("user")
         textViewUser.text = currentUser.toString().split("@")[1]
+
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -43,11 +45,21 @@ class ChatActivity : AppCompatActivity() {
 
             // Encrypt the input
             val encryptedInput: String = encryptMessage(userInput, key)
+
+            val currentUser = intent.getStringExtra("user")
+            val databaseReference = Firebase.database.reference.child("messages")
+            val messageData = MessageData(currentUser, encryptedInput)
+
+
+            databaseReference.push().setValue(messageData)
+
             addMessage("Encrypted message: $encryptedInput")
 
             // Decrypt the input
             val decryptedInput: String = decryptMessage(encryptedInput, key)
             addMessage("Decrypted message: $decryptedInput")
+
+
 
         } catch (e: Exception) {
             e.printStackTrace()
