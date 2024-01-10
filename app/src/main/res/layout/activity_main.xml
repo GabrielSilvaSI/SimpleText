@@ -62,7 +62,8 @@
             app:layout_constraintTop_toBottomOf="@+id/editTextPassword"
             android:layout_marginTop="64dp"
             android:textSize="24sp"
-            app:cornerRadius="10dp"/>
+            app:cornerRadius="10dp"
+            android:onClick="loginAuth"/>
 
     <Button
             android:text="@string/sign_in"
