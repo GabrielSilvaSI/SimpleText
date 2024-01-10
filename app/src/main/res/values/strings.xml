@@ -12,4 +12,9 @@
     <string name="user">User</string>
     <string name="logout">Logout</string>
     <string name="confirm_password">Confirm Password</string>
+    <string name="create_account">Create Account</string>
+    <string name="enter">Enter</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="create_account_arrow">Create Account ></string>
+    <string name="login_arrow"><![CDATA[< Login]]></string>
 </resources>

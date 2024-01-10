@@ -10,7 +10,6 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import java.util.Base64
 import javax.crypto.Cipher
@@ -57,13 +56,13 @@ class ChatActivity : AppCompatActivity() {
 
     fun deauth(view: View){
         Firebase.auth.signOut()
-        val intent = Intent(this, MainActivity::class.java)
-        startActivity(intent)
+        val intent = Intent(this, LoginActivity::class.java)
         Toast.makeText(
             baseContext,
             "Log out successful!",
             Toast.LENGTH_SHORT,
         ).show()
+        startActivity(intent)
         finish()
     }
 
