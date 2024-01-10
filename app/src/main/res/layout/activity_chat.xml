@@ -16,7 +16,10 @@
             app:layout_constraintTop_toTopOf="@+id/textInputLayout"
             app:layout_constraintBottom_toBottomOf="@+id/textInputLayout"
             android:layout_marginEnd="8dp"
-            android:contentDescription="@string/send_message"/>
+            android:contentDescription="@string/send_message"
+            android:onClick="btSendAction"
+        />
+
 
     <com.google.android.material.textfield.TextInputLayout
             android:layout_width="0dp"
