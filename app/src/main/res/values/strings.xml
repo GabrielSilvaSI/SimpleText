@@ -3,7 +3,6 @@
     <string name="login">Login</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
-    <string name="enter">Enter</string>
     <string name="sign_in">Sign In</string>
     <string name="authentication">Authentication</string>
     <string name="status">Status</string>
@@ -12,4 +11,5 @@
     <string name="messages">Messages</string>
     <string name="user">User</string>
     <string name="logout">Logout</string>
+    <string name="confirm_password">Confirm Password</string>
 </resources>
