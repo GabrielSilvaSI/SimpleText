@@ -9,14 +9,21 @@ import android.provider.BaseColumns
 class MessageDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     override fun onCreate(db: SQLiteDatabase) {
-        val SQL_CREATE_ENTRIES =
+        val SQL_CREATE_MESSAGE_ENTRIES =
             "CREATE TABLE ${MessageContract.MessageEntry.TABLE_NAME} (" +
                     "${BaseColumns._ID} INTEGER PRIMARY KEY," +
                     "${MessageContract.MessageEntry.COLUMN_USER_ID} TEXT," +
                     "${MessageContract.MessageEntry.COLUMN_USER_NAME} TEXT," +
                     "${MessageContract.MessageEntry.COLUMN_MESSAGE} TEXT)"
 
-        db.execSQL(SQL_CREATE_ENTRIES)
+        val SQL_CREATE_KEY_ENTRIES =
+            "CREATE TABLE ${KeyContract.KeyEntry.TABLE_NAME} (" +
+                    "${BaseColumns._ID} INTEGER PRIMARY KEY," +
+                    "${KeyContract.KeyEntry.COLUMN_SYMMETRIC_KEY} TEXT)"
+
+
+        db.execSQL(SQL_CREATE_MESSAGE_ENTRIES)
+        db.execSQL(SQL_CREATE_KEY_ENTRIES)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
