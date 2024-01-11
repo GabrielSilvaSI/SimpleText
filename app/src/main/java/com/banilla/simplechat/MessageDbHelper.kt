@@ -48,6 +48,44 @@ class MessageDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
 
     }
 
+    fun insertKey(symmetricKey: String) {
+        val db = writableDatabase
+
+        val values = ContentValues().apply {
+            put(KeyContract.KeyEntry.COLUMN_SYMMETRIC_KEY, symmetricKey)
+        }
+
+        val newRowId = db.insert(KeyContract.KeyEntry.TABLE_NAME, null, values)
+    }
+
+    fun getAllKeys(): List<String> {
+        val db = readableDatabase
+        val projection = arrayOf(KeyContract.KeyEntry.COLUMN_SYMMETRIC_KEY)
+
+        val cursor = db.query(
+            KeyContract.KeyEntry.TABLE_NAME,
+            projection,
+            null,
+            null,
+            null,
+            null,
+            null
+        )
+
+        val keys = mutableListOf<String>()
+
+        with(cursor) {
+            while (moveToNext()) {
+                val symmetricKey = getString(getColumnIndexOrThrow(KeyContract.KeyEntry.COLUMN_SYMMETRIC_KEY))
+                keys.add(symmetricKey)
+            }
+        }
+
+        cursor.close()
+
+        return keys
+    }
+
     fun getAllMessages(dbHelper: MessageDbHelper): List<String> {
         val db = dbHelper.readableDatabase
         val projection = arrayOf(
