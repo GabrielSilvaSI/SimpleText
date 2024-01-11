@@ -47,7 +47,10 @@
             app:layout_constraintBottom_toTopOf="@+id/textInputLayout"
             android:layout_marginEnd="8dp"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="8dp"
+            app:layout_constraintTop_toBottomOf="@+id/textViewUser"
+            android:backgroundTint="@color/design_default_color_primary"
+            android:layout_marginTop="8dp">
 
         <LinearLayout
                 android:layout_width="match_parent"
@@ -67,26 +70,27 @@
             android:layout_height="wrap_content"
             app:srcCompat="@android:drawable/ic_menu_close_clear_cancel"
             android:id="@+id/imageButton2"
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:contentDescription="@string/logout"
-            android:onClick="deauth"/>
+            android:onClick="deauth"
+            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="8dp"/>
 
     <TextView
             android:text="@string/user"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
             android:id="@+id/textViewUser"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/imageButton2"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toTopOf="@+id/imageButton2"
             android:layout_marginStart="8dp"
             app:layout_constraintBottom_toBottomOf="@+id/imageButton2"
-            android:textSize="24sp"
+            android:textSize="34sp"
             android:textAlignment="viewStart"
-            android:layout_marginEnd="8dp"/>
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="#373737"
+            android:shadowColor="#000000"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
