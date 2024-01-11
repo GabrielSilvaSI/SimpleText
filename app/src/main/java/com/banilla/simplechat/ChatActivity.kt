@@ -14,12 +14,17 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import com.google.firebase.database.*
-import java.security.PrivateKey
-import java.security.PublicKey
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
+import android.util.Base64 as Base
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import javax.crypto.spec.SecretKeySpec
 
 
 class ChatActivity : AppCompatActivity() {
@@ -27,11 +32,15 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var currentUser: FirebaseUser
     private lateinit var dbRef: DatabaseReference
     private lateinit var dbMes: DatabaseReference
+    private lateinit var dbKey: DatabaseReference
     private lateinit var userName: String
     private lateinit var textViewMessages: TextView
     private lateinit var textViewUser: TextView
     private lateinit var inputTextMessage: TextInputEditText
+    private lateinit var key: SecretKey
+    private lateinit var userId: String
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
@@ -43,27 +52,63 @@ class ChatActivity : AppCompatActivity() {
         textViewUser = findViewById(R.id.textViewUser)
         textViewMessages = findViewById(R.id.textViewMessages)
         inputTextMessage = findViewById(R.id.textInputMessage)
+        userId= currentUser.uid
 
-        val userId: String = currentUser.uid
-        dbRef = FirebaseDatabase.getInstance().getReference("Users").child(userId)
-        dbRef.addValueEventListener(object : ValueEventListener {
+        verifyKey()
+        updateUser()
+        updateMessages()
+    }
+
+    private fun verifyKey() {
+        dbKey = FirebaseDatabase.getInstance().getReference("Key")
+        dbKey.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
-                userName = dataSnapshot.child("userName").getValue(String::class.java).toString()
-                textViewUser.text = userName
+                val symmetricKeyString = dataSnapshot.child("symmetricKey").getValue(String::class.java)
+
+                if (symmetricKeyString != null) {
+                    // Se a chave já existe no banco de dados, converta a string de volta para SecretKey
+                    key = stringToSecretKey(symmetricKeyString)
+                } else {
+                    // Se a chave não existe, gere uma nova e a armazene no banco de dados
+                    key = generateKey()
+
+                    // Converta a SecretKey para uma representação de string antes de armazená-la
+                    val keyString = secretKeyToString(key)
+
+                    val hashMap: HashMap<String, String> = HashMap()
+                    hashMap["symmetricKey"] = keyString
+                    dbKey.setValue(hashMap)
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Failed to read value
+                // Trate os erros de leitura do banco de dados
                 // MENSAGEM DE ERRO
             }
         })
+    }
+
+    // Função para converter SecretKey para String
+    fun secretKeyToString(secretKey: SecretKey): String {
+        val keyBytes = secretKey.encoded
+        return Base.encodeToString(keyBytes, Base.DEFAULT)
+    }
+    // Função para converter String de volta para SecretKey
+    fun stringToSecretKey(keyString: String): SecretKey {
+        val keyBytes = Base.decode(keyString, Base.DEFAULT)
+        val keySpec = SecretKeySpec(keyBytes, "AES")
+        return SecretKeySpec(keyBytes, "AES")
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun updateMessages() {
         dbMes.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 val messagesBuilder = StringBuilder()
 
                 for (messageSnapshot in dataSnapshot.children) {
-                    val tempName = messageSnapshot.child("userName").getValue(String::class.java).toString()
-                    val tempMessage = messageSnapshot.child("userMessage").getValue(String::class.java).toString()
+                    val tempName = decryptMessage(messageSnapshot.child("userName").getValue(String::class.java).toString(), key)
+                    val tempMessage = decryptMessage(messageSnapshot.child("userMessage").getValue(String::class.java).toString(), key)
 
                     messagesBuilder.append("$tempName: $tempMessage\n")
                 }
@@ -78,19 +123,32 @@ class ChatActivity : AppCompatActivity() {
         })
     }
 
+    private fun updateUser() {
+        dbRef = FirebaseDatabase.getInstance().getReference("Users").child(userId)
+        dbRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                userName = dataSnapshot.child("userName").getValue(String::class.java).toString()
+                textViewUser.text = userName
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Failed to read value
+                // MENSAGEM DE ERRO
+            }
+        })
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     fun buttonSendMessage(view: View){
-
-        val key: SecretKey = generateKey()
-
         val message = inputTextMessage.text.toString()
         val encryptedMessage = encryptMessage(message, key)
+        val encryptedUser = encryptMessage(userName, key)
         val userId: String = currentUser.uid
         val messageRef = dbMes.push()
 
         val hashMap: HashMap<String, String> = HashMap()
         hashMap.put("userId", userId)
-        hashMap.put("userName", userName)
+        hashMap.put("userName", encryptedUser)
         hashMap.put("userMessage", encryptedMessage)
 
         messageRef.setValue(hashMap).addOnCompleteListener(this){
