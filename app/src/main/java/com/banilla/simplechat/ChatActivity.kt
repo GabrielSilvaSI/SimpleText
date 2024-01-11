@@ -14,6 +14,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import com.google.firebase.database.*
+import java.security.PrivateKey
+import java.security.PublicKey
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -76,15 +78,20 @@ class ChatActivity : AppCompatActivity() {
         })
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun buttonSendMessage(view: View){
+
+        val key: SecretKey = generateKey()
+
         val message = inputTextMessage.text.toString()
+        val encryptedMessage = encryptMessage(message, key)
         val userId: String = currentUser.uid
         val messageRef = dbMes.push()
 
         val hashMap: HashMap<String, String> = HashMap()
         hashMap.put("userId", userId)
         hashMap.put("userName", userName)
-        hashMap.put("userMessage", message)
+        hashMap.put("userMessage", encryptedMessage)
 
         messageRef.setValue(hashMap).addOnCompleteListener(this){
             if(!it.isSuccessful){
@@ -109,6 +116,31 @@ class ChatActivity : AppCompatActivity() {
         ).show()
         startActivity(intent)
         finish()
+    }
+
+    @Throws(Exception::class)
+    private fun generateKey(): SecretKey {
+        val keyGenerator = KeyGenerator.getInstance("AES")
+        keyGenerator.init(256)
+        return keyGenerator.generateKey()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Throws(Exception::class)
+    private fun encryptMessage(message: String, key: SecretKey): String {
+        val cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.ENCRYPT_MODE, key)
+        val encryptedBytes: ByteArray = cipher.doFinal(message.toByteArray())
+        return Base64.getEncoder().encodeToString(encryptedBytes)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Throws(Exception::class)
+    private fun decryptMessage(encryptedMessage: String, key: SecretKey): String {
+        val cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.DECRYPT_MODE, key)
+        val decryptedBytes: ByteArray = cipher.doFinal(Base64.getDecoder().decode(encryptedMessage))
+        return String(decryptedBytes, charset("UTF-8"))
     }
 
 }
