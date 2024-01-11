@@ -25,6 +25,8 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import javax.crypto.spec.SecretKeySpec
+import com.banilla.simplechat.MessageDbHelper
+
 
 
 class ChatActivity : AppCompatActivity() {
@@ -39,11 +41,13 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var inputTextMessage: TextInputEditText
     private lateinit var key: SecretKey
     private lateinit var userId: String
+    private lateinit var dbHelper: MessageDbHelper
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
+        dbHelper = MessageDbHelper(this)
 
         auth = Firebase.auth
         currentUser = auth.currentUser!!
@@ -110,7 +114,9 @@ class ChatActivity : AppCompatActivity() {
                     val tempName = decryptMessage(messageSnapshot.child("userName").getValue(String::class.java).toString(), key)
                     val tempMessage = decryptMessage(messageSnapshot.child("userMessage").getValue(String::class.java).toString(), key)
 
+
                     messagesBuilder.append("$tempName: $tempMessage\n")
+
                 }
 
                 textViewMessages.text = messagesBuilder.toString()
@@ -150,6 +156,8 @@ class ChatActivity : AppCompatActivity() {
         hashMap.put("userId", userId)
         hashMap.put("userName", encryptedUser)
         hashMap.put("userMessage", encryptedMessage)
+
+        dbHelper.insertMessage(userId, userName, encryptedMessage)
 
         messageRef.setValue(hashMap).addOnCompleteListener(this){
             if(!it.isSuccessful){
