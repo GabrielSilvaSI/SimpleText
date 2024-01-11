@@ -32,7 +32,8 @@
             android:layout_marginTop="64dp"
             android:hint="@string/user"
             android:minHeight="48dp"
-            android:autofillHints=""/>
+            android:autofillHints=""
+            android:singleLine="true"/>
 
     <EditText
             android:layout_width="0dp"
@@ -48,7 +49,8 @@
             android:minHeight="48dp"
             android:importantForAutofill="no"
             app:layout_constraintTop_toBottomOf="@+id/editTextUser"
-            android:layout_marginTop="32dp"/>
+            android:layout_marginTop="32dp"
+            android:singleLine="true"/>
 
     <EditText
             android:layout_width="0dp"
@@ -64,7 +66,8 @@
             android:layout_marginTop="32dp"
             android:layout_marginStart="32dp"
             android:layout_marginEnd="32dp"
-            android:hint="@string/password"/>
+            android:hint="@string/password"
+            android:singleLine="true"/>
 
     <EditText
             android:layout_width="0dp"
@@ -80,7 +83,8 @@
             android:minHeight="48dp"
             app:layout_constraintTop_toBottomOf="@+id/editTextPassword"
             android:layout_marginTop="32dp"
-            android:importantForAutofill="no"/>
+            android:importantForAutofill="no"
+            android:singleLine="true"/>
 
     <Button
             android:text="@string/sign_up"

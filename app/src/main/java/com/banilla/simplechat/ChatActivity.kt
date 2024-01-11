@@ -10,8 +10,10 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
-import com.google.firebase.database.database
+import com.google.firebase.database.*
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -19,6 +21,10 @@ import javax.crypto.SecretKey
 
 
 class ChatActivity : AppCompatActivity() {
+    private lateinit var auth: FirebaseAuth
+    private lateinit var currentUser: FirebaseUser
+    private lateinit var dbRef: DatabaseReference
+    private lateinit var userId: String
     private lateinit var textViewMessages: TextInputEditText
     private lateinit var textViewUser: TextView
 
@@ -26,12 +32,28 @@ class ChatActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
 
+        auth = Firebase.auth
+        currentUser = auth.currentUser!!
+
         textViewUser = findViewById(R.id.textViewUser)
         textViewMessages = findViewById(R.id.textInputMessage)
 
-        val currentUser = intent.getStringExtra("user")
-        textViewUser.text = currentUser.toString().split("@")[1]
+        val userId: String = currentUser.uid
+        dbRef = FirebaseDatabase.getInstance().getReference("Users").child(userId)
+        // Read from the database
+        dbRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                val userName = dataSnapshot.child("userName").getValue(String::class.java)
+                textViewUser.text = userName
+            }
 
+            override fun onCancelled(error: DatabaseError) {
+                // Failed to read value
+                // MENSAGEM DE ERRO
+            }
+        })
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
