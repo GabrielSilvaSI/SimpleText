@@ -24,9 +24,11 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var currentUser: FirebaseUser
     private lateinit var dbRef: DatabaseReference
-    private lateinit var userId: String
-    private lateinit var textViewMessages: TextInputEditText
+    private lateinit var dbMes: DatabaseReference
+    private lateinit var userName: String
+    private lateinit var textViewMessages: TextView
     private lateinit var textViewUser: TextView
+    private lateinit var inputTextMessage: TextInputEditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,19 +36,37 @@ class ChatActivity : AppCompatActivity() {
 
         auth = Firebase.auth
         currentUser = auth.currentUser!!
+        dbMes = FirebaseDatabase.getInstance().getReference("Messages")
 
         textViewUser = findViewById(R.id.textViewUser)
-        textViewMessages = findViewById(R.id.textInputMessage)
+        textViewMessages = findViewById(R.id.textViewMessages)
+        inputTextMessage = findViewById(R.id.textInputMessage)
 
         val userId: String = currentUser.uid
         dbRef = FirebaseDatabase.getInstance().getReference("Users").child(userId)
-        // Read from the database
         dbRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
-                // This method is called once with the initial value and again
-                // whenever data at this location is updated.
-                val userName = dataSnapshot.child("userName").getValue(String::class.java)
+                userName = dataSnapshot.child("userName").getValue(String::class.java).toString()
                 textViewUser.text = userName
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Failed to read value
+                // MENSAGEM DE ERRO
+            }
+        })
+        dbMes.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                val messagesBuilder = StringBuilder()
+
+                for (messageSnapshot in dataSnapshot.children) {
+                    val tempName = messageSnapshot.child("userName").getValue(String::class.java).toString()
+                    val tempMessage = messageSnapshot.child("userMessage").getValue(String::class.java).toString()
+
+                    messagesBuilder.append("$tempName: $tempMessage\n")
+                }
+
+                textViewMessages.text = messagesBuilder.toString()
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -56,35 +76,26 @@ class ChatActivity : AppCompatActivity() {
         })
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun btSendAction(view: View) {
-        try {
-            // Generate a secret key
-            val key: SecretKey = generateKey()
+    fun buttonSendMessage(view: View){
+        val message = inputTextMessage.text.toString()
+        val userId: String = currentUser.uid
+        val messageRef = dbMes.push()
 
-            // Get input from the user
-            val userInput = textViewMessages.text.toString()
+        val hashMap: HashMap<String, String> = HashMap()
+        hashMap.put("userId", userId)
+        hashMap.put("userName", userName)
+        hashMap.put("userMessage", message)
 
-            // Encrypt the input
-            val encryptedInput: String = encryptMessage(userInput, key)
-
-            val currentUser = intent.getStringExtra("user")
-            val databaseReference = Firebase.database.reference.child("messages")
-            val messageData = MessageData(currentUser, encryptedInput)
-
-
-            databaseReference.push().setValue(messageData)
-
-            addMessage("Encrypted message: $encryptedInput")
-
-            // Decrypt the input
-            val decryptedInput: String = decryptMessage(encryptedInput, key)
-            addMessage("Decrypted message: $decryptedInput")
-
-
-
-        } catch (e: Exception) {
-            e.printStackTrace()
+        messageRef.setValue(hashMap).addOnCompleteListener(this){
+            if(!it.isSuccessful){
+                Toast.makeText(
+                    baseContext,
+                    "Error, message not sent!",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                inputTextMessage.text = null
+            }
         }
     }
 
@@ -100,38 +111,4 @@ class ChatActivity : AppCompatActivity() {
         finish()
     }
 
-    @Throws(Exception::class)
-    private fun generateKey(): SecretKey {
-        val keyGenerator = KeyGenerator.getInstance("AES")
-        keyGenerator.init(256)
-        return keyGenerator.generateKey()
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    @Throws(Exception::class)
-    private fun encryptMessage(message: String, key: SecretKey): String {
-        val cipher = Cipher.getInstance("AES")
-        cipher.init(Cipher.ENCRYPT_MODE, key)
-        val encryptedBytes: ByteArray = cipher.doFinal(message.toByteArray())
-        return Base64.getEncoder().encodeToString(encryptedBytes)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    @Throws(Exception::class)
-    private fun decryptMessage(encryptedMessage: String, key: SecretKey): String {
-        val cipher = Cipher.getInstance("AES")
-        cipher.init(Cipher.DECRYPT_MODE, key)
-        val decryptedBytes: ByteArray = cipher.doFinal(Base64.getDecoder().decode(encryptedMessage))
-        return String(decryptedBytes, charset("UTF-8"))
-    }
-
-    private fun addMessage(text : String){
-        textViewMessages.setText("")
-        textViewUser.text = buildString {
-            append(textViewUser.text.toString())
-            append(text)
-            append("\n")
-        }
-
-    }
 }
