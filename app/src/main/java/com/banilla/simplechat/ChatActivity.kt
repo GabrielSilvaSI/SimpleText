@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -35,8 +36,7 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var dbKey: DatabaseReference
     private lateinit var userName: String
     private lateinit var textViewMessages: TextView
-    private lateinit var textViewUser: TextView
-    private lateinit var inputTextMessage: TextInputEditText
+    private lateinit var inputTextMessage: EditText
     private lateinit var key: SecretKey
     private lateinit var userId: String
 
@@ -49,9 +49,8 @@ class ChatActivity : AppCompatActivity() {
         currentUser = auth.currentUser!!
         dbMes = FirebaseDatabase.getInstance().getReference("Messages")
 
-        textViewUser = findViewById(R.id.textViewUser)
         textViewMessages = findViewById(R.id.textViewMessages)
-        inputTextMessage = findViewById(R.id.textInputMessage)
+        inputTextMessage = findViewById(R.id.editTextMessage)
         userId= currentUser.uid
 
         verifyKey()
@@ -82,8 +81,7 @@ class ChatActivity : AppCompatActivity() {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Trate os erros de leitura do banco de dados
-                // MENSAGEM DE ERRO
+                Toast.makeText(baseContext,"DatabaseError!", Toast.LENGTH_SHORT).show()
             }
         })
     }
@@ -128,7 +126,6 @@ class ChatActivity : AppCompatActivity() {
         dbRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 userName = dataSnapshot.child("userName").getValue(String::class.java).toString()
-                textViewUser.text = userName
             }
 
             override fun onCancelled(error: DatabaseError) {
