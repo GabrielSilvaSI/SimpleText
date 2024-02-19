@@ -74,6 +74,7 @@ class SignupActivity : AppCompatActivity() {
                     val hashMap: HashMap<String,String> = HashMap()
                     hashMap.put("userId",userId)
                     hashMap.put("userName",tempUser)
+                    hashMap.put("userEmail",tempEmail)
                     dbRef.setValue(hashMap).addOnCompleteListener(this){
                         if(it.isSuccessful){
                             Toast.makeText(
@@ -99,7 +100,7 @@ class SignupActivity : AppCompatActivity() {
     private fun startChat() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            val intent = Intent(this, ChatActivity::class.java)
+            val intent = Intent(this, ChatsActivity::class.java)
             intent.putExtra("user", currentUser.toString())
             startActivity(intent)
             finish()

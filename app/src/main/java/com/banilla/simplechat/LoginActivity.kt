@@ -68,7 +68,7 @@ class LoginActivity : AppCompatActivity() {
     private fun startChat() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            val intent = Intent(this, ChatActivity::class.java)
+            val intent = Intent(this, ChatsActivity::class.java)
             intent.putExtra("user", currentUser)
             startActivity(intent)
             finish()

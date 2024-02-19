@@ -17,4 +17,7 @@
     <string name="sign_up">Sign Up</string>
     <string name="create_account_arrow">Create Account ></string>
     <string name="login_arrow"><![CDATA[< Login]]></string>
+    <string name="log_out">Log out</string>
+    <string name="todo">TODO</string>
+    <string name="send_image">Send image</string>
 </resources>
