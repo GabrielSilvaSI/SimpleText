@@ -33,6 +33,8 @@ import com.google.firebase.storage.UploadTask
 import com.google.firebase.storage.storage
 import javax.crypto.spec.SecretKeySpec
 import com.bumptech.glide.Glide
+import java.security.KeyPair
+import java.security.KeyStore
 
 class ChatActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
@@ -43,11 +45,16 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var userName: String
     private lateinit var inputTextMessage: EditText
     private lateinit var key: SecretKey
+    private lateinit var keyPair: KeyPair
     private lateinit var userId: String
     private lateinit var lastName: String
     private lateinit var messageBox: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var cryptoManager: CryptoManager
+    private lateinit var diffieHellmanHelper: DiffieHellmanHelper
+    private lateinit var sslClient: SSLClient
+
+    private lateinit var sharedSecret: ByteArray
     private val PICK_IMAGE_REQUEST = 1
     private var selectedImageUri: Uri? = null
     private var chatId: String? = null
@@ -77,8 +84,23 @@ class ChatActivity : AppCompatActivity() {
 
         selectedImageUri = null
 
-        key = cryptoManager.getOrCreateKeyForChat(chatId ?:"")
+        diffieHellmanHelper = DiffieHellmanHelper()
+        val publicKeyBytes = diffieHellmanHelper.getPublicKey()
 
+        val publicKeyString = Base64.getEncoder().encodeToString(publicKeyBytes)
+
+        sslClient = SSLClient("https://0:0:0:0:0:0:0:0:8443", 8443)
+        sslClient.sendPublicKey(publicKeyString) { success ->
+            if (success) {
+                print("Chave Enviada")
+            } else {
+                print("Erro ao Enviar Chave")
+            }
+        }
+
+
+        val keyString = getKeyString(key)
+        Log.d("Chave", "Chave em string: $keyString")
         updateUser()
         updateMessages()
     }
@@ -87,6 +109,15 @@ class ChatActivity : AppCompatActivity() {
         val intent = Intent(Intent.ACTION_PICK)
         intent.type = "image/*"
         startActivityForResult(intent, PICK_IMAGE_REQUEST)
+    }
+
+    fun getKeyString(key: SecretKey): String {
+        return try {
+            Base.encodeToString(key.encoded, Base.DEFAULT)
+        } catch (e: Exception) {
+            Log.e("Error", "Erro ao obter a string da chave: ${e.message}")
+            ""
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -168,9 +199,9 @@ class ChatActivity : AppCompatActivity() {
                     val ivString = messageSnapshot.child("iv").getValue(String::class.java).toString()
                     print(ivString)
                     val ivByteArray = Base.decode(ivString, 1)
-                    val decryptedMessage = cryptoManager.decryptMessage(encryptedMessage, key, ivByteArray)
+                    //val decryptedMessage = cryptoManager.decryptMessage(encryptedMessage, key, ivByteArray)
                     val tempImageUrl = messageSnapshot.child("userImage").getValue(String::class.java).toString()
-                    buildMessages(tempName, decryptedMessage, tempImageUrl)
+                    buildMessages(tempName, encryptedMessage, tempImageUrl)
                 }
                 scrollView.post {
                     scrollView.fullScroll(ScrollView.FOCUS_DOWN)
@@ -249,8 +280,8 @@ class ChatActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     fun buttonSendMessage(view: View) {
         val message = inputTextMessage.text.toString()
-        val (encryptedMessage, iv) = cryptoManager.encryptMessage(message, key)
-        val ivString = Base.encodeToString(iv, Base.DEFAULT)
+        //val (encryptedMessage, iv) = cryptoManager.encryptMessage(message, key)
+        //val ivString = Base.encodeToString(iv, Base.DEFAULT)
 
         if (message.isNotBlank()) {
             val messageRef = dbMes.push()
@@ -258,9 +289,9 @@ class ChatActivity : AppCompatActivity() {
             val hashMap: HashMap<String, Any> = HashMap()
             hashMap["userId"] = currentUser.uid
             hashMap["userName"] = userName
-            hashMap["userMessage"] = encryptedMessage
+            hashMap["userMessage"] = message
             hashMap["userImage"] = ""
-            hashMap["iv"] = ivString
+            //hashMap["iv"] = ivString
 
             messageRef.setValue(hashMap).addOnCompleteListener(this) { task ->
                 if (!task.isSuccessful) {
