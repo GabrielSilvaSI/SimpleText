@@ -76,7 +76,7 @@ class ChatActivity : AppCompatActivity() {
 
         selectedImageUri = null
 
-        key = cryptoManager.createKey()
+        key = cryptoManager.getOrCreateKeyForChat(chatId ?:"")
 
         updateUser()
         updateMessages()

@@ -20,10 +20,10 @@ class CryptoManager {
         load(null)
     }
 
-    fun createKey(): SecretKey{
+    fun createKey(alias: String): SecretKey {
         return KeyGenerator.getInstance(FERNET).apply {
             init(
-                KeyGenParameterSpec.Builder("secret", KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
                     .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
                     .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
                     .setUserAuthenticationRequired(false)
@@ -33,10 +33,21 @@ class CryptoManager {
         }.generateKey()
     }
 
-    fun getKey(): SecretKey{
-        val existingKey = keyStore.getEntry("secret" , null) as? KeyStore.SecretKeyEntry
-        return existingKey?.secretKey ?: createKey()
+    fun getKey(alias: String): SecretKey {
+        val existingKey = keyStore.getEntry(alias, null) as? KeyStore.SecretKeyEntry
+        return existingKey?.secretKey ?: createKey(alias)
     }
+
+    fun getOrCreateKeyForChat(chatId: String): SecretKey {
+        val alias = "${chatId}_key"
+
+        return if (keyStore.containsAlias(alias)) {
+            getKey(alias)
+        } else {
+            createKey(alias)
+        }
+    }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun encryptMessage(message: String, key: SecretKey): String {
