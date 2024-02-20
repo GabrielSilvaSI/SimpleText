@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.annotation.RequiresApi
@@ -163,11 +164,15 @@ class ChatActivity : AppCompatActivity() {
                 lastName = ""
                 for (messageSnapshot in dataSnapshot.children) {
                     val tempName = messageSnapshot.child("userName").getValue(String::class.java).toString()
-                    val tempMessage = messageSnapshot.child("userMessage").getValue(String::class.java).toString()
+                    val encryptedMessage = messageSnapshot.child("userMessage").getValue(String::class.java).toString()
+                    val ivString = messageSnapshot.child("iv").getValue(String::class.java).toString()
+                    print(ivString)
+                    val ivByteArray = Base.decode(ivString, 1)
+                    val decryptedMessage = cryptoManager.decryptMessage(encryptedMessage, key, ivByteArray)
                     val tempImageUrl = messageSnapshot.child("userImage").getValue(String::class.java).toString()
-                    buildMessages(tempName, tempMessage, tempImageUrl)
+                    buildMessages(tempName, decryptedMessage, tempImageUrl)
                 }
-                scrollView.post{
+                scrollView.post {
                     scrollView.fullScroll(ScrollView.FOCUS_DOWN)
                     inputTextMessage.restoreDefaultFocus()
                 }
@@ -242,19 +247,23 @@ class ChatActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun buttonSendMessage(view: View){
+    fun buttonSendMessage(view: View) {
         val message = inputTextMessage.text.toString()
-        if(message.isNotBlank()){
+        val (encryptedMessage, iv) = cryptoManager.encryptMessage(message, key)
+        val ivString = Base.encodeToString(iv, Base.DEFAULT)
+
+        if (message.isNotBlank()) {
             val messageRef = dbMes.push()
 
-            val hashMap: HashMap<String, String> = HashMap()
-            hashMap.put("userId", currentUser.uid)
-            hashMap.put("userName", userName)
-            hashMap.put("userMessage", cryptoManager.encryptMessage(message, key))
-            hashMap.put("userImage", "")
+            val hashMap: HashMap<String, Any> = HashMap()
+            hashMap["userId"] = currentUser.uid
+            hashMap["userName"] = userName
+            hashMap["userMessage"] = encryptedMessage
+            hashMap["userImage"] = ""
+            hashMap["iv"] = ivString
 
-            messageRef.setValue(hashMap).addOnCompleteListener(this){
-                if(!it.isSuccessful){
+            messageRef.setValue(hashMap).addOnCompleteListener(this) { task ->
+                if (!task.isSuccessful) {
                     Toast.makeText(
                         baseContext,
                         "Error, message not sent!",
@@ -266,8 +275,8 @@ class ChatActivity : AppCompatActivity() {
             }
             selectedImageUri = null
         }
-
     }
+
 
     fun closeChat(view: View){
         finish()

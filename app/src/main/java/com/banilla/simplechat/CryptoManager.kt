@@ -50,17 +50,19 @@ class CryptoManager {
 
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun encryptMessage(message: String, key: SecretKey): String {
+    fun encryptMessage(message: String, key: SecretKey): Pair<String, ByteArray> {
         val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, key)
+        val iv = cipher.iv
         val encryptedBytes: ByteArray = cipher.doFinal(message.toByteArray())
-        return Base64.getEncoder().encodeToString(encryptedBytes)
+        return Pair(Base64.getEncoder().encodeToString(encryptedBytes), iv)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun decryptMessage(encryptedMessage: String, key: SecretKey): String {
+    fun decryptMessage(encryptedMessage: String, key: SecretKey, iv: ByteArray): String {
         val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
-        cipher.init(Cipher.DECRYPT_MODE, key)
+        val ivSpec = IvParameterSpec(iv)
+        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec)
         val decryptedBytes: ByteArray = cipher.doFinal(Base64.getDecoder().decode(encryptedMessage))
         return String(decryptedBytes, charset("UTF-8"))
     }
