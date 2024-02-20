@@ -46,6 +46,7 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var lastName: String
     private lateinit var messageBox: LinearLayout
     private lateinit var scrollView: ScrollView
+    private lateinit var cryptoManager: CryptoManager
     private val PICK_IMAGE_REQUEST = 1
     private var selectedImageUri: Uri? = null
     private var chatId: String? = null
@@ -57,6 +58,8 @@ class ChatActivity : AppCompatActivity() {
 
         auth = Firebase.auth
         currentUser = auth.currentUser!!
+
+        cryptoManager = CryptoManager()
 
         // Obter o ID do chat passado pelo Intent
         chatId = intent.getStringExtra("chatId")
@@ -72,6 +75,8 @@ class ChatActivity : AppCompatActivity() {
         storageImages = Firebase.storage.getReference().child("images")
 
         selectedImageUri = null
+
+        key = cryptoManager.createKey()
 
         updateUser()
         updateMessages()
@@ -245,7 +250,7 @@ class ChatActivity : AppCompatActivity() {
             val hashMap: HashMap<String, String> = HashMap()
             hashMap.put("userId", currentUser.uid)
             hashMap.put("userName", userName)
-            hashMap.put("userMessage", message)
+            hashMap.put("userMessage", cryptoManager.encryptMessage(message, key))
             hashMap.put("userImage", "")
 
             messageRef.setValue(hashMap).addOnCompleteListener(this){
