@@ -3,9 +3,11 @@ package com.banilla.simplechat
 import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
+import android.net.http.UrlRequest
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.telecom.Call
 import android.util.Log
 import android.view.View
 import android.widget.*
@@ -33,8 +35,17 @@ import com.google.firebase.storage.UploadTask
 import com.google.firebase.storage.storage
 import javax.crypto.spec.SecretKeySpec
 import com.bumptech.glide.Glide
+
 import java.security.KeyPair
 import java.security.KeyStore
+
+import com.google.android.gms.common.api.Response
+import org.json.JSONObject
+
+import okhttp3.*
+import java.io.IOException
+import okhttp3.Request
+
 
 class ChatActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
@@ -51,10 +62,11 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var messageBox: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var cryptoManager: CryptoManager
-    private lateinit var diffieHellmanHelper: DiffieHellmanHelper
-    private lateinit var sslClient: SSLClient
 
     private lateinit var sharedSecret: ByteArray
+
+    private lateinit var diffieHellmanHelper: DiffieHellmanHelper
+
     private val PICK_IMAGE_REQUEST = 1
     private var selectedImageUri: Uri? = null
     private var chatId: String? = null
@@ -84,20 +96,6 @@ class ChatActivity : AppCompatActivity() {
 
         selectedImageUri = null
 
-        diffieHellmanHelper = DiffieHellmanHelper()
-        val publicKeyBytes = diffieHellmanHelper.getPublicKey()
-
-        val publicKeyString = Base64.getEncoder().encodeToString(publicKeyBytes)
-
-        sslClient = SSLClient("https://0:0:0:0:0:0:0:0:8443", 8443)
-        sslClient.sendPublicKey(publicKeyString) { success ->
-            if (success) {
-                print("Chave Enviada")
-            } else {
-                print("Erro ao Enviar Chave")
-            }
-        }
-
 
         val keyString = getKeyString(key)
         Log.d("Chave", "Chave em string: $keyString")
@@ -110,6 +108,7 @@ class ChatActivity : AppCompatActivity() {
         intent.type = "image/*"
         startActivityForResult(intent, PICK_IMAGE_REQUEST)
     }
+
 
     fun getKeyString(key: SecretKey): String {
         return try {
@@ -307,6 +306,72 @@ class ChatActivity : AppCompatActivity() {
             selectedImageUri = null
         }
     }
+
+    private fun getServerPublicKey() {
+        val client = OkHttpClient.Builder().build()
+        val request = Request.Builder()
+            .url("http://127.0.0.1:5000/public-key")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                val responseData = response.body?.string()
+                val serverPublicKeyString = JSONObject(responseData).getString("public_key")
+
+                // Continua com o cálculo do segredo compartilhado
+                calculateSharedSecret(serverPublicKeyString)
+            }
+
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                e.printStackTrace()
+            }
+        })
+    }
+
+
+    private fun calculateSharedSecret(publicKey: String) {
+        val client = OkHttpClient.Builder().build()
+        val requestBody = FormBody.Builder()
+            .add("public_key", publicKey)
+            .build()
+
+        val request = Request.Builder()
+            .url("http://127.0.0.1:5000/shared-secret")
+            .post(requestBody)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                if (response.isSuccessful) {
+                    val responseData = response.body?.string()
+                    val jsonObject = JSONObject(responseData)
+                    val sharedSecretString = jsonObject.getString("shared_secret")
+
+                    // Converte o segredo compartilhado de Base64 para ByteArray
+                    sharedSecret = Base64.getDecoder().decode(sharedSecretString)
+
+                    // Aqui você pode prosseguir com a utilização do segredo compartilhado
+                } else {
+                    // Se a resposta não for bem-sucedida, imprima o código de erro
+                    println("Erro na solicitação: ${response.code}")
+                }
+            }
+
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                // Em caso de falha na solicitação, imprima o erro
+                e.printStackTrace()
+            }
+        })
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun startKeyExchange() {
+        getServerPublicKey()
+    }
+
 
 
     fun closeChat(view: View){
