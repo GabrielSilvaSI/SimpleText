@@ -10,9 +10,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import android.content.DialogInterface
 import androidx.appcompat.app.AlertDialog
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 
 class OptionsActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
+    private lateinit var dbRef: DatabaseReference
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_options)
@@ -29,26 +32,34 @@ class OptionsActivity : AppCompatActivity() {
 
         builder.setPositiveButton("Delete") { dialog, which ->
             val user = Firebase.auth.currentUser!!
-            user.delete()
+            dbRef = FirebaseDatabase.getInstance().getReference("Users").child(user.uid)
+
+            dbRef.removeValue()
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        Toast.makeText(
-                            baseContext,
-                            "User account deleted",
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                        Firebase.auth.signOut()
-                        val intent = Intent(this, LoginActivity::class.java)
-                        startActivity(intent)
-                        finish()
-                    }else{
-                        Toast.makeText(
-                            baseContext,
-                            "Account delete failed",
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                        user.delete()
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    Toast.makeText(
+                                        baseContext,
+                                        "User account deleted",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                    Firebase.auth.signOut()
+                                    val intent = Intent(this, LoginActivity::class.java)
+                                    startActivity(intent)
+                                    finish()
+                                }else{
+                                    Toast.makeText(
+                                        baseContext,
+                                        "Account delete failed",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            }
                     }
                 }
+
         }
 
         builder.setNegativeButton("Cancel") { dialog, which ->
