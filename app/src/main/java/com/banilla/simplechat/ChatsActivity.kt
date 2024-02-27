@@ -129,16 +129,8 @@ class ChatsActivity : AppCompatActivity() {
         }
     }
 
-
-    fun deauth(view: View){
-        Firebase.auth.signOut()
-        val intent = Intent(this, LoginActivity::class.java)
-        Toast.makeText(
-            baseContext,
-            "Log out successful!",
-            Toast.LENGTH_SHORT,
-        ).show()
+    fun options(view: View){
+        val intent = Intent(this, OptionsActivity::class.java)
         startActivity(intent)
-        finish()
     }
 }

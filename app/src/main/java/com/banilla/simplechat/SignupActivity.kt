@@ -77,12 +77,21 @@ class SignupActivity : AppCompatActivity() {
                     hashMap.put("userEmail",tempEmail)
                     dbRef.setValue(hashMap).addOnCompleteListener(this){
                         if(it.isSuccessful){
-                            Toast.makeText(
-                                baseContext,
-                                "Sign up successful!",
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                            startChat()
+                            val user = auth.currentUser
+                            user!!.sendEmailVerification()
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        Toast.makeText(
+                                            baseContext,
+                                            "Confirmation email sent",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                        val intent = Intent(this, LoginActivity::class.java)
+                                        startActivity(intent)
+                                        auth.signOut()
+                                        finish()
+                                    }
+                                }
                         }
                     }
                 } else {
@@ -95,16 +104,6 @@ class SignupActivity : AppCompatActivity() {
                         textInputPassword.setText(null)
                 }
             }
-    }
-
-    private fun startChat() {
-        val currentUser = auth.currentUser
-        if (currentUser != null) {
-            val intent = Intent(this, ChatsActivity::class.java)
-            intent.putExtra("user", currentUser.toString())
-            startActivity(intent)
-            finish()
-        }
     }
 
     fun buttonLoginAccount(view: View){

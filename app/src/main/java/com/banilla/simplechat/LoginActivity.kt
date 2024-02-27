@@ -28,6 +28,35 @@ class LoginActivity : AppCompatActivity() {
         startChat()
     }
 
+    fun changePassword(view: View){
+        val tempEmail = textInputEmail.text.toString()
+        if(TextUtils.isEmpty(tempEmail)){
+            Toast.makeText(applicationContext, "Provide a valid email", Toast.LENGTH_SHORT).show()
+        }else{
+            Firebase.auth.sendPasswordResetEmail(tempEmail)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Toast.makeText(
+                            baseContext,
+                            "Change password email sent",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        Firebase.auth.signOut()
+                        val intent = Intent(this, LoginActivity::class.java)
+                        startActivity(intent)
+                        finish()
+                    }else{
+                        Toast.makeText(
+                            baseContext,
+                            "Unable to send password reset to the email provided",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                }
+        }
+
+    }
+
     fun buttonLogin(view: View){
         val tempEmail = textInputEmail.text.toString()
         val tempPassword = textInputPassword.text.toString()
@@ -45,18 +74,26 @@ class LoginActivity : AppCompatActivity() {
             auth.signInWithEmailAndPassword(tempEmail, tempPassword)
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
-                        // Sign in success, update UI with the signed-in user's information
-                        Toast.makeText(
-                            baseContext,
-                            "Login successful!",
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                        startChat()
+                        if (FirebaseAuth.getInstance().currentUser!!.isEmailVerified) {
+                            Toast.makeText(
+                                baseContext,
+                                "Login successful",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            startChat()
+                        } else {
+                            Toast.makeText(
+                                baseContext,
+                                "Please verify your email",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+
                     } else {
                         // If sign in fails, display a message to the user.
                         Toast.makeText(
                             baseContext,
-                            "Authentication failed.",
+                            "Authentication failed",
                             Toast.LENGTH_SHORT,
                         ).show()
                         textInputPassword.setText(null)

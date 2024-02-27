@@ -12,25 +12,9 @@
             android:layout_height="48dp"
             app:srcCompat="@drawable/simplechat"
             android:id="@+id/imageViewLogo"
-            app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginStart="8dp"
-            app:layout_constraintEnd_toStartOf="@+id/imageButton"
-            app:layout_constraintHorizontal_bias="1.0"
             app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginTop="8dp"/>
-
-    <ImageButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:srcCompat="@android:drawable/ic_delete"
-            android:id="@+id/imageButton"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginEnd="8dp"
-            android:contentDescription="@string/logout"
-            android:onClick="deauth"
-            app:layout_constraintTop_toTopOf="parent"
-            style="@style/button_menu_style"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginTop="8dp" app:layout_constraintStart_toEndOf="@+id/buttonOptions"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
     <ScrollView
             android:layout_width="0dp"
@@ -67,5 +51,11 @@
             app:layout_constraintEnd_toStartOf="@+id/buttonNewChat" android:layout_marginEnd="8dp"
             app:layout_constraintBottom_toBottomOf="parent" android:layout_marginBottom="8dp"
             style="@style/edit_text_style" android:hint="Email"/>
+    <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" app:srcCompat="@android:drawable/ic_menu_manage"
+            android:id="@+id/buttonOptions" app:layout_constraintTop_toTopOf="parent" android:layout_marginTop="8dp"
+            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="8dp"
+            style="@style/button_menu_style" android:contentDescription="Options" android:onClick="options"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

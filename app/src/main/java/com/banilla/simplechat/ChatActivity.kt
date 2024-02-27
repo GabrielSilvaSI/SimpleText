@@ -3,12 +3,9 @@ package com.banilla.simplechat
 import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
-import android.net.http.UrlRequest
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.telecom.Call
-import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.annotation.RequiresApi
@@ -36,17 +33,6 @@ import com.google.firebase.storage.storage
 import javax.crypto.spec.SecretKeySpec
 import com.bumptech.glide.Glide
 
-import java.security.KeyPair
-import java.security.KeyStore
-
-import com.google.android.gms.common.api.Response
-import org.json.JSONObject
-
-import okhttp3.*
-import java.io.IOException
-import okhttp3.Request
-
-
 class ChatActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var currentUser: FirebaseUser
@@ -56,17 +42,10 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var userName: String
     private lateinit var inputTextMessage: EditText
     private lateinit var key: SecretKey
-    private lateinit var keyPair: KeyPair
     private lateinit var userId: String
     private lateinit var lastName: String
     private lateinit var messageBox: LinearLayout
     private lateinit var scrollView: ScrollView
-    private lateinit var cryptoManager: CryptoManager
-
-    private lateinit var sharedSecret: ByteArray
-
-    private lateinit var diffieHellmanHelper: DiffieHellmanHelper
-
     private val PICK_IMAGE_REQUEST = 1
     private var selectedImageUri: Uri? = null
     private var chatId: String? = null
@@ -78,8 +57,6 @@ class ChatActivity : AppCompatActivity() {
 
         auth = Firebase.auth
         currentUser = auth.currentUser!!
-
-        cryptoManager = CryptoManager()
 
         // Obter o ID do chat passado pelo Intent
         chatId = intent.getStringExtra("chatId")
@@ -96,9 +73,6 @@ class ChatActivity : AppCompatActivity() {
 
         selectedImageUri = null
 
-
-        val keyString = getKeyString(key)
-        Log.d("Chave", "Chave em string: $keyString")
         updateUser()
         updateMessages()
     }
@@ -107,16 +81,6 @@ class ChatActivity : AppCompatActivity() {
         val intent = Intent(Intent.ACTION_PICK)
         intent.type = "image/*"
         startActivityForResult(intent, PICK_IMAGE_REQUEST)
-    }
-
-
-    fun getKeyString(key: SecretKey): String {
-        return try {
-            Base.encodeToString(key.encoded, Base.DEFAULT)
-        } catch (e: Exception) {
-            Log.e("Error", "Erro ao obter a string da chave: ${e.message}")
-            ""
-        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -194,15 +158,11 @@ class ChatActivity : AppCompatActivity() {
                 lastName = ""
                 for (messageSnapshot in dataSnapshot.children) {
                     val tempName = messageSnapshot.child("userName").getValue(String::class.java).toString()
-                    val encryptedMessage = messageSnapshot.child("userMessage").getValue(String::class.java).toString()
-                    val ivString = messageSnapshot.child("iv").getValue(String::class.java).toString()
-                    print(ivString)
-                    val ivByteArray = Base.decode(ivString, 1)
-                    //val decryptedMessage = cryptoManager.decryptMessage(encryptedMessage, key, ivByteArray)
+                    val tempMessage = messageSnapshot.child("userMessage").getValue(String::class.java).toString()
                     val tempImageUrl = messageSnapshot.child("userImage").getValue(String::class.java).toString()
-                    buildMessages(tempName, encryptedMessage, tempImageUrl)
+                    buildMessages(tempName, tempMessage, tempImageUrl)
                 }
-                scrollView.post {
+                scrollView.post{
                     scrollView.fullScroll(ScrollView.FOCUS_DOWN)
                     inputTextMessage.restoreDefaultFocus()
                 }
@@ -277,23 +237,19 @@ class ChatActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun buttonSendMessage(view: View) {
+    fun buttonSendMessage(view: View){
         val message = inputTextMessage.text.toString()
-        //val (encryptedMessage, iv) = cryptoManager.encryptMessage(message, key)
-        //val ivString = Base.encodeToString(iv, Base.DEFAULT)
-
-        if (message.isNotBlank()) {
+        if(message.isNotBlank()){
             val messageRef = dbMes.push()
 
-            val hashMap: HashMap<String, Any> = HashMap()
-            hashMap["userId"] = currentUser.uid
-            hashMap["userName"] = userName
-            hashMap["userMessage"] = message
-            hashMap["userImage"] = ""
-            //hashMap["iv"] = ivString
+            val hashMap: HashMap<String, String> = HashMap()
+            hashMap.put("userId", currentUser.uid)
+            hashMap.put("userName", userName)
+            hashMap.put("userMessage", message)
+            hashMap.put("userImage", "")
 
-            messageRef.setValue(hashMap).addOnCompleteListener(this) { task ->
-                if (!task.isSuccessful) {
+            messageRef.setValue(hashMap).addOnCompleteListener(this){
+                if(!it.isSuccessful){
                     Toast.makeText(
                         baseContext,
                         "Error, message not sent!",
@@ -305,74 +261,8 @@ class ChatActivity : AppCompatActivity() {
             }
             selectedImageUri = null
         }
+
     }
-
-    private fun getServerPublicKey() {
-        val client = OkHttpClient.Builder().build()
-        val request = Request.Builder()
-            .url("http://127.0.0.1:5000/public-key")
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            @RequiresApi(Build.VERSION_CODES.O)
-            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
-                val responseData = response.body?.string()
-                val serverPublicKeyString = JSONObject(responseData).getString("public_key")
-
-                // Continua com o cálculo do segredo compartilhado
-                calculateSharedSecret(serverPublicKeyString)
-            }
-
-            override fun onFailure(call: okhttp3.Call, e: IOException) {
-                e.printStackTrace()
-            }
-        })
-    }
-
-
-    private fun calculateSharedSecret(publicKey: String) {
-        val client = OkHttpClient.Builder().build()
-        val requestBody = FormBody.Builder()
-            .add("public_key", publicKey)
-            .build()
-
-        val request = Request.Builder()
-            .url("http://127.0.0.1:5000/shared-secret")
-            .post(requestBody)
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            @RequiresApi(Build.VERSION_CODES.O)
-            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
-                if (response.isSuccessful) {
-                    val responseData = response.body?.string()
-                    val jsonObject = JSONObject(responseData)
-                    val sharedSecretString = jsonObject.getString("shared_secret")
-
-                    // Converte o segredo compartilhado de Base64 para ByteArray
-                    sharedSecret = Base64.getDecoder().decode(sharedSecretString)
-
-                    // Aqui você pode prosseguir com a utilização do segredo compartilhado
-                } else {
-                    // Se a resposta não for bem-sucedida, imprima o código de erro
-                    println("Erro na solicitação: ${response.code}")
-                }
-            }
-
-            override fun onFailure(call: okhttp3.Call, e: IOException) {
-                // Em caso de falha na solicitação, imprima o erro
-                e.printStackTrace()
-            }
-        })
-    }
-
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun startKeyExchange() {
-        getServerPublicKey()
-    }
-
-
 
     fun closeChat(view: View){
         finish()
